@@ -1,0 +1,8 @@
+## Interface: 100205
+## Title: |cffa9ce77AutoSheathe|r
+## Notes: Sheathe your weapons whenever you leave combat.
+## IconTexture: Interface\Icons\Inv_quiver_1h_hunter_c_01_green
+## Author: Mekhlin
+## Version: 1.0.0
+
+AutoSheathe.xml
