@@ -47,34 +47,34 @@ end
 Addon
 --]]
 
-function AutoSheathe_PLAYER_LOGIN()
+function SheatheEvent_PLAYER_LOGIN()
     print(ADDON_NAME .. " enabled.")
-    HandleSheath();
+    HandleSheathe();
 end
 
 -- leave combat
-function AutoSheathe_PLAYER_REGEN_ENABLED()
-    HandleSheath();
+function SheatheEvent_PLAYER_REGEN_ENABLED()
+    HandleSheathe();
 end
 
 -- enter combat
-function AutoSheathe_PLAYER_REGEN_DISABLED()
-    HandleSheath();
+function SheatheEvent_PLAYER_REGEN_DISABLED()
+    HandleSheathe();
 end
 
-function AutoSheathe_LOOT_OPENED()
+function SheatheEvent_LOOT_OPENED()
     -- Classic: when looting, the weapon is automatically sheathed
     -- without canceling, the weapon sometimes disappears visually
-    HandleSheath()
+    HandleSheathe()
 end
 
-function AutoSheathe_LOOT_CLOSED()
+function SheatheEvent_LOOT_CLOSED()
     -- Classic: when auto looting is enabled and there is no loot
     -- the weapon is not automatically sheathed
-    HandleSheath()
+    HandleSheathe()
 end
 
-function HandleSheath()
+function HandleSheathe()
     local infight = UnitAffectingCombat("player")
     if not infight then
         if GetSheathState() == 2 then
@@ -84,11 +84,11 @@ function HandleSheath()
 end
 
 local AutoSheatheEvents = {
-PLAYER_REGEN_ENABLED = AutoSheathe_PLAYER_LOGIN,
-PLAYER_REGEN_ENABLED = AutoSheathe_PLAYER_REGEN_ENABLED,
-PLAYER_REGEN_DISABLED = AutoSheathe_PLAYER_REGEN_DISABLED,
-LOOT_OPENED = AutoSheathe_LOOT_OPENED,
-LOOT_CLOSED = AutoSheathe_LOOT_CLOSED,
+PLAYER_REGEN_ENABLED = SheatheEvent_PLAYER_LOGIN,
+PLAYER_REGEN_ENABLED = SheatheEvent_PLAYER_REGEN_ENABLED,
+PLAYER_REGEN_DISABLED = SheatheEvent_PLAYER_REGEN_DISABLED,
+LOOT_OPENED = SheatheEvent_LOOT_OPENED,
+LOOT_CLOSED = SheatheEvent_LOOT_CLOSED,
 };
 
 function AutoSheathe_OnEvent(self, event, ...)
