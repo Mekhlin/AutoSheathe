@@ -1,51 +1,92 @@
-local ADDON_NAME = "AutoSheathe";
-local ADDON_VERSION = "1.0.0";
-local ADDON_REPO = "https://github.com/Mekhlin/AutoSheathe";
-local ADDON_LICENSE = "MIT License";
+-- Create a new addon object using AceAddon
+AutoSheathe = LibStub("AceAddon-3.0"):NewAddon("AutoSheathe", "AceEvent-3.0")
 
---[[
-Options Panel
---]]
+function AutoSheathe:OnInitialize()
+    defaults = {
+        profile = {
+            enableAddon = true,  -- Default value for checkbox
+            sheathConfig = 1
+        }
+    }
 
-local function TextColor(text, color)
-    if color ~= nil then
-        return "|c" .. color .. text .. "|r"
+    events = {
+        'ADDON_LOADED',
+        'PLAYER_LOGIN',
+        'PLAYER_REGEN_ENABLED',
+        'LOOT_CLOSED',
+        'AUCTION_HOUSE_CLOSED',
+        'UNIT_EXITED_VEHICLE',
+        'BARBER_SHOP_CLOSE',
+        'PLAYER_ENTERING_WORLD',
+        'UNIT_AURA',
+        'QUEST_ACCEPTED',
+        'QUEST_FINISHED', 
+        'MERCHANT_CLOSED'
+	}
+
+    -- Initialize database with defaults
+    AutoSheathe.db = LibStub("AceDB-3.0"):New("AutoSheatheDB", defaults, true)
+
+    -- Register options table
+    LibStub("AceConfig-3.0"):RegisterOptionsTable("AutoSheathe", AutoSheathe:GetOptions())
+    LibStub("AceConfigDialog-3.0"):AddToBlizOptions("AutoSheathe", "AutoSheathe")
+    
+    eventFrame = CreateFrame("FRAME", "AutoSheatheEventFrame")
+    registerEvents(events)
+end
+
+function registerEvents(events)
+    eventFrame:UnregisterAllEvents();
+    for i = 1, #events do
+        eventFrame:RegisterEvent(events[i])
     end
-
-    return text
+    
+    eventFrame:SetScript("OnEvent", function (frame, event, first, second)
+      if (event ~= "ADDON_LOADED") then
+        HandleSheathe()
+      end
+  	end)
 end
 
-function AutoSheathe_CreateOptionsPanel()
-        local panel = CreateFrame("Frame", "autoSheathOptionsPanel");
-        panel.name = ADDON_NAME;
-        local category, layout = Settings.RegisterCanvasLayoutCategory(panel, panel.name, panel.name);
-        category.ID = panel.name;
-        Settings.RegisterAddOnCategory(category);
-
-        local title = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge");
-        title:SetPoint("TOPLEFT", 16, -16)
-        title:SetText(TextColor(ADDON_NAME, "ffa9ce77"));
-
-        local version = panel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall");
-        version:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, 0);
-        version:SetText(TextColor("v"..ADDON_VERSION, "ffc0c0c0"));
-
-        local addOnSource = panel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall");
-        addOnSource:SetPoint("TOPLEFT", version, "BOTTOMLEFT", 0, -8);
-        addOnSource:SetText(ADDON_REPO);
-
-        local licenseHeader = panel:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge");
-        licenseHeader:SetPoint("TOPLEFT", addOnSource, "BOTTOMLEFT", 0, -30);
-        licenseHeader:SetText(TextColor("License"));
-
-        local licenseName = panel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall");
-        licenseName:SetPoint("TOPLEFT", licenseHeader, "BOTTOMLEFT", 0, -8);
-        licenseName:SetText(ADDON_LICENSE);
+-- Define options table
+function AutoSheathe:GetOptions()
+    return {
+        name = "AutoSheathe",
+        type = "group",
+        args = {
+            enableAddon = {
+                name = "Enable AutoSheathe",
+                desc = "Enable or disable AutoSheathe",
+                type = "toggle",
+                order = 1,
+                set = function(info, val)
+                    AutoSheathe.db.profile.enableAddon = val
+                    HandleSheathe()
+                end,
+                get = function(info)
+                    return AutoSheathe.db.profile.enableAddon
+                end,
+            },
+            sheathConfig = {
+                name = "Configuration",
+                desc = "Select sheathe state",
+                type = "select",
+                order = 2,
+                values = {
+					[1] = "Sheathe weapon",
+					[2] = "Keep weapon unsheathed"
+				},
+                set = function(info, val)
+                    AutoSheathe.db.profile.sheathConfig = val
+                    HandleSheathe()
+                end,
+                get = function(info)
+                    return AutoSheathe.db.profile.sheathConfig
+                end,
+            },
+        },
+    }
 end
-
---[[
-Addon
---]]
 
 function SheatheEvent_PLAYER_LOGIN()
     print(ADDON_NAME .. " enabled.")
@@ -75,33 +116,19 @@ function SheatheEvent_LOOT_CLOSED()
 end
 
 function HandleSheathe()
+
+    if not AutoSheathe.db.profile.enableAddon then
+        return
+    end
+
     local infight = UnitAffectingCombat("player")
     if not infight then
-        if GetSheathState() == 2 then
+        if (GetSheathState() == 2 and AutoSheathe.db.profile.sheathConfig == 1) then
             ToggleSheath()
+        elseif (GetSheathState() == 2 and AutoSheathe.db.profile.sheathConfig == 2) then
+            return
+        elseif (GetSheathState() == 1 and AutoSheathe.db.profile.sheathConfig == 1) then
+            return
         end
-    end
-end
-
-local AutoSheatheEvents = {
-PLAYER_REGEN_ENABLED = SheatheEvent_PLAYER_LOGIN,
-PLAYER_REGEN_ENABLED = SheatheEvent_PLAYER_REGEN_ENABLED,
-PLAYER_REGEN_DISABLED = SheatheEvent_PLAYER_REGEN_DISABLED,
-LOOT_OPENED = SheatheEvent_LOOT_OPENED,
-LOOT_CLOSED = SheatheEvent_LOOT_CLOSED,
-};
-
-function AutoSheathe_OnEvent(self, event, ...)
-    if event and AutoSheatheEvents[event] then
-        AutoSheatheEvents[event](self, ...);
-    end
-end
-
-function AutoSheathe_OnLoad(self)
-    AutoSheathe_CreateOptionsPanel()
-    self:UnregisterAllEvents();
-
-    for event, _ in pairs(AutoSheatheEvents) do
-        self:RegisterEvent(event);
     end
 end
