@@ -5,7 +5,7 @@ function AutoSheathe:OnInitialize()
     defaults = {
         profile = {
             enableAddon = true,  -- Default value for checkbox
-            sheathConfig = 1
+            sheatheAction = 1
         }
     }
 
@@ -63,33 +63,53 @@ function AutoSheathe:GetOptions()
                     AutoSheathe.db.profile.enableAddon = val
                     HandleSheathe()
                 end,
-                get = function(info)
-                    return AutoSheathe.db.profile.enableAddon
-                end,
+                get = function(info) return AutoSheathe.db.profile.enableAddon end
             },
-            sheathConfig = {
+            sheatheConfing = {
                 name = "Configuration",
-                desc = "Select sheathe state",
-                type = "select",
+                type = "group",
                 order = 2,
-                values = {
-					[1] = "Sheathe weapon",
-					[2] = "Keep weapon unsheathed"
-				},
-                set = function(info, val)
-                    AutoSheathe.db.profile.sheathConfig = val
-                    HandleSheathe()
-                end,
-                get = function(info)
-                    return AutoSheathe.db.profile.sheathConfig
-                end,
+                inline = true,
+                args = {
+                    sheatheAction = {
+                        name = "Sheathing",
+                        desc = "Select sheathe action",
+                        type = "select",
+                        order = 1,
+                        values = {
+                            [1] = "Sheathe weapon",
+                            [2] = "Keep weapon unsheathed"
+                        },
+                        set = function(info, val)
+                            AutoSheathe.db.profile.sheatheAction = val
+                            HandleSheathe()
+                        end,
+                        get = function(info) return AutoSheathe.db.profile.sheatheAction end
+                    }
+                }
             },
-        },
+            aboutOptions = {
+                name = "About",
+                type = "group",
+                order = 3,
+                inline = true,
+                args = {
+                    version = {
+                        order = 1,
+                        type = "description",
+                        name = function()
+                            addonVersion = GetAddOnMetadata("AutoSheathe", "Version")
+                            return "Version: " .. addonVersion .. "\nhttps://github.com/Mekhlin/AutoSheathe"
+                        end
+                    }
+                }
+            }
+        }
     }
 end
 
 function SheatheEvent_PLAYER_LOGIN()
-    print(ADDON_NAME .. " enabled.")
+    print("AutoSheathe enabled.")
     HandleSheathe();
 end
 
@@ -123,11 +143,11 @@ function HandleSheathe()
 
     local infight = UnitAffectingCombat("player")
     if not infight then
-        if (GetSheathState() == 2 and AutoSheathe.db.profile.sheathConfig == 1) then
+        if (GetSheathState() == 2 and AutoSheathe.db.profile.sheatheAction == 1) then
             ToggleSheath()
-        elseif (GetSheathState() == 2 and AutoSheathe.db.profile.sheathConfig == 2) then
+        elseif (GetSheathState() == 2 and AutoSheathe.db.profile.sheatheAction == 2) then
             return
-        elseif (GetSheathState() == 1 and AutoSheathe.db.profile.sheathConfig == 1) then
+        elseif (GetSheathState() == 1 and AutoSheathe.db.profile.sheatheAction == 1) then
             return
         end
     end
