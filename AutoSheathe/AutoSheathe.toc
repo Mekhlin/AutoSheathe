@@ -1,9 +1,9 @@
-## Interface: 100205
-## Title: |cffa9ce77AutoSheathe|r
+## Interface: 100206
+## Title: |cff9d875fAutoSheathe|r
 ## Notes: Sheathe your weapons whenever you leave combat.
 ## IconTexture: Interface\Icons\Inv_archaeology_orcclans_scrimshaw
 ## Author: Mekhlin
-## Version: 1.0.0
+## Version: 1.0.1
 ## SavedVariables: AutoSheatheDB
 
 libs\LibStub\LibStub.lua
