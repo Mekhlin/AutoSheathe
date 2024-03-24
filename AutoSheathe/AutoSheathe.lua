@@ -20,7 +20,7 @@ local vehicleBuffs = {
 }
 
 -- Create and initialize addon
-AutoSheathe = LibStub("AceAddon-3.0"):NewAddon("AutoSheathe", "AceTimer-3.0", "AceConsole-3.0")
+AutoSheathe = LibStub("AceAddon-3.0"):NewAddon("AutoSheathe", "AceTimer-3.0")
 eventFrame = CreateFrame("FRAME", "AutoSheatheEventFrame")
 
 function AutoSheathe:OnInitialize()
@@ -38,13 +38,11 @@ function AutoSheathe:OnInitialize()
     LibStub("AceConfigDialog-3.0"):AddToBlizOptions("AutoSheathe", "AutoSheathe")
     
     AutoSheathe:RegisterGameEvents()
-    AutoSheathe:RegisterChatCommands()
+    registerSlashCommands()
 end
 
 function AutoSheathe:OnEnable()
-    if AutoSheathe.db.profile.enabled then
-        startSheatheTimer()
-    end
+    startSheatheTimer()
 end
 
 function AutoSheathe:RegisterGameEvents()
@@ -78,7 +76,12 @@ function AutoSheathe:GetOptions()
                 desc = "Enable or disable AutoSheathe",
                 type = "toggle",
                 order = 1,
-                set = function(info, val) AutoSheathe.db.profile.enabled = val end,
+                set = function(info, val)
+                    AutoSheathe.db.profile.enabled = val
+                    if arg == "city_sheathe" then
+                        handleWeaponSheathe()
+                    end
+                end,
                 get = function(info) return AutoSheathe.db.profile.enabled end
             },
             basic_config = {
@@ -176,7 +179,7 @@ function handleWeaponSheathe()
 
     infight = UnitAffectingCombat("player")
     if infight then
-        if AutoSheathe.db.profile.auto_draw and canUnsheatheWeapon() then
+        if canUnsheatheWeapon() then
             ToggleSheath()
             return
         else
@@ -184,8 +187,13 @@ function handleWeaponSheathe()
         end
     end
     
-    if GetSheathState() == 2 and AutoSheathe.db.profile.city_sheathe and not IsResting() then
-        return
+    sheathState = GetSheathState()
+    
+    if AutoSheathe.db.profile.city_sheathe then
+        if IsResting() and sheathState == 2 then
+            ToggleSheath()
+            return
+        end
     end
     
     if AutoSheathe.db.profile.sheath_state == 2 and canUnsheatheWeapon() then
@@ -236,6 +244,10 @@ function canUnsheatheWeapon()
         return false
     end
     
+    if UnitAffectingCombat("player") and AutoSheathe.db.profile.auto_draw then
+        return true
+    end
+    
     -- If player is mounted or affexted by "vehicle buff".
     if IsMounted() or inVehicle() then
         return false
@@ -251,7 +263,7 @@ end
 
 function startSheatheTimer()
   destroyExistingSheatheTimer()
-  AutoSheathe.Timer = AutoSheathe:ScheduleRepeatingTimer("SheatheTimerFeedback", 3)
+  AutoSheathe.Timer = AutoSheathe:ScheduleRepeatingTimer("SheatheTimerFeedback", 2)
 end
 
 function destroyExistingSheatheTimer()
@@ -265,45 +277,47 @@ function AutoSheathe:SheatheTimerFeedback()
   handleWeaponSheathe()
 end
 
-function AutoSheathe:RegisterChatCommands()
-  AutoSheathe:RegisterChatCommand("autosheathe","slashfunc")
-  AutoSheathe:RegisterChatCommand("as","slashfunc")
-end
-
-function AutoSheathe:slashfunc(input)
-    if not AutoSheathe.db.profile.enabled then
-        return
-    end
-
-    input = string.lower(input)    
-    command, arg = AutoSheathe:GetArgs(input, 2)    
-
-    if command == "toggle" then
-        if arg == "autodraw" and AutoSheathe.db.profile.sheath_state == 1 then
-            isAutoDrawEnabled = not AutoSheathe.db.profile.auto_draw
-            AutoSheathe.db.profile.auto_draw = isAutoDrawEnabled
-            print("Auto draw weapon:", booleanToText(AutoSheathe.db.profile.auto_draw))
+function registerSlashCommands()
+    local console = LibStub("AceConsole-3.0")
+    
+    local function slashfunc(input)
+        if not AutoSheathe.db.profile.enabled then
             return
         end
-        
-        if arg == "city" and AutoSheathe.db.profile.sheath_state == 2 then
-            isCitySheatheEnabled = not AutoSheathe.db.profile.city_sheathe
-            AutoSheathe.db.profile.auto_draw = isCitySheatheEnabled
-            print("Keep weapon sheathed in cities:", booleanToText(AutoSheathe.db.profile.city_sheathe))
+
+        input = string.lower(input)    
+        command, arg = console:GetArgs(input, 2)    
+
+        if command == "toggle" then
+            if arg == "autodraw" and AutoSheathe.db.profile.sheath_state == 1 then
+                isAutoDrawEnabled = not AutoSheathe.db.profile.auto_draw
+                AutoSheathe.db.profile.auto_draw = isAutoDrawEnabled
+                print("Auto draw weapon:", booleanToText(AutoSheathe.db.profile.auto_draw))
+                return
+            end
+            
+            if arg == "city" and AutoSheathe.db.profile.sheath_state == 2 then
+                isCitySheatheEnabled = not AutoSheathe.db.profile.city_sheathe
+                AutoSheathe.db.profile.auto_draw = isCitySheatheEnabled
+                print("Keep weapon sheathed in cities:", booleanToText(AutoSheathe.db.profile.city_sheathe))
+                return
+            end
+            
+            isAddonEnabled = not AutoSheathe.db.profile.enabled
+            AutoSheathe.db.profile.enabled = isAddonEnabled
+            print("AutoSheathe:", booleanToText(AutoSheathe.db.profile.enabled))
             return
-        end
+        end    
         
-        isAddonEnabled = not AutoSheathe.db.profile.enabled
-        AutoSheathe.db.profile.enabled = isAddonEnabled
-        print("AutoSheathe:", booleanToText(AutoSheathe.db.profile.enabled))
-        return
+        if Settings then
+            Settings.OpenToCategory("AutoSheathe")
+        elseif InterfaceOptionsFrame_OpenToCategory then
+            InterfaceOptionsFrame_OpenToCategory("AutoSheathe")
+        end
     end    
     
-    if Settings then
-		Settings.OpenToCategory("AutoSheathe")
-	elseif InterfaceOptionsFrame_OpenToCategory then
-		InterfaceOptionsFrame_OpenToCategory("AutoSheathe")
-	end
+    console:RegisterChatCommand("autosheathe",slashfunc)
+    console:RegisterChatCommand("as",slashfunc)
 end
 
 function booleanToText(val)
