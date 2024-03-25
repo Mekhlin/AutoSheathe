@@ -12,7 +12,7 @@ local gameEvents = {
     "MERCHANT_CLOSED"
 }
 
-local vehicleBuffs = {
+local buffVehicles = {
     ["Rocfeather Skyhorn Kite"] = true,
     ["Goblin Glider"]           = true,
     ["Zen Flight"]              = true,
@@ -34,27 +34,31 @@ function AutoSheathe:OnInitialize()
     }
 
     AutoSheathe.db = LibStub("AceDB-3.0"):New("AutoSheatheDB", defaults, true)
+    AutoSheathe.db.RegisterCallback(AutoSheathe, "OnProfileChanged", "OnProfileChanged")
+	AutoSheathe.db.RegisterCallback(self, "OnProfileReset", "OnProfileChanged")
 
     local aboutOptions = {
         name = "About",
         type = "group",
-        order = 30,
-        inline = true,
         args = {
-            version = {
-                type = "description",
-                name = function(info) return "Version: " .. GetAddOnMetadata("AutoSheathe", "Version") end
+                version = {
+                    name = function(info) return "Version: " .. GetAddOnMetadata("AutoSheathe", "Version") end,
+                    type = "description"
+                }
             }
         }
-    }
 
     local config = LibStub("AceConfig-3.0")
     local dialog = LibStub("AceConfigDialog-3.0")
 
     config:RegisterOptionsTable("AutoSheathe", AutoSheathe:GetOptions())
-    config:RegisterOptionsTable("AutoSheathe-About", aboutOptions)
-
     dialog:AddToBlizOptions("AutoSheathe", "AutoSheathe")
+
+    profileOptions = LibStub("AceDBOptions-3.0"):GetOptionsTable(AutoSheathe.db)
+    config:RegisterOptionsTable("AutoSheathe-Profiles", profileOptions)
+    dialog:AddToBlizOptions("AutoSheathe-Profiles", "Profiles", "AutoSheathe")
+
+    config:RegisterOptionsTable("AutoSheathe-About", aboutOptions)
     dialog:AddToBlizOptions("AutoSheathe-About", "About", "AutoSheathe")
 
     AutoSheathe:RegisterGameEvents()
@@ -65,6 +69,12 @@ function AutoSheathe:OnEnable()
     startSheatheTimer()
 end
 
+function AutoSheathe:OnProfileChanged(event, database, newProfileKey)
+    local profileKey = "|cffffa500" .. newProfileKey .. "|r"
+    print("AutoSheathe profile changed:", profileKey)
+	handleWeaponSheathe()
+end
+--FFA500
 function AutoSheathe:RegisterGameEvents()
     eventFrame:UnregisterAllEvents();
 
@@ -157,6 +167,15 @@ function AutoSheathe:GetOptions()
                         arg = "city_sheathe"
                     }
                 }
+            },
+            reset_profile = {
+                type = "execute",
+                name = "Defaults",
+                desc = "Resets profile to default values",
+                order = 30,
+                func = function() AutoSheathe.db:ResetProfile() end,
+                width = "half",
+                disabled = function() return not AutoSheathe.db.profile.enabled end,
             }
         }
     }
@@ -202,7 +221,7 @@ function inVehicle()
 
     for i = 1, 40 do
         local name, _, _, _, _, _ = UnitBuff("player",i)
-        if name and vehicleBuffs[name] then
+        if name and buffVehicles[name] then
             return true
         end
     end

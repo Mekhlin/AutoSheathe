@@ -6,13 +6,8 @@
 ## Version: 1.0.1
 ## SavedVariables: AutoSheatheDB
 
-libs\LibStub\LibStub.lua
-libs\CallbackHandler-1.0\CallbackHandler-1.0.xml
-libs\AceAddon-3.0\AceAddon-3.0.xml
-libs\AceGUI-3.0\AceGUI-3.0.xml
-libs\AceConfig-3.0\AceConfig-3.0.xml
-libs\AceDB-3.0\AceDB-3.0.xml
-libs\AceTimer-3.0\AceTimer-3.0.xml
-libs\AceConsole-3.0\AceConsole-3.0.xml
+#@no-lib-strip@
+embeds.xml
+#@end-no-lib-strip@
 
 AutoSheathe.lua
