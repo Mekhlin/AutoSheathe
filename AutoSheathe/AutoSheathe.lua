@@ -20,7 +20,7 @@ local buffVehicles = {
 }
 
 -- Create and initialize addon
-AutoSheathe = LibStub("AceAddon-3.0"):NewAddon("AutoSheathe", "AceTimer-3.0")
+AutoSheathe = LibStub("AceAddon-3.0"):NewAddon("AutoSheathe", "AceTimer-3.0", "AceConsole-3.0")
 eventFrame = CreateFrame("FRAME", "AutoSheatheEventFrame")
 
 function AutoSheathe:OnInitialize()
@@ -33,9 +33,14 @@ function AutoSheathe:OnInitialize()
         }
     }
 
+    local function profileChanged(event, database, newProfileKey)
+        print("AutoSheathe profile changed:", formatTextColor(newProfileKey, "ffffa500"))
+        handleWeaponSheathe()
+    end
+
     AutoSheathe.db = LibStub("AceDB-3.0"):New("AutoSheatheDB", defaults, true)
-    AutoSheathe.db.RegisterCallback(AutoSheathe, "OnProfileChanged", "OnProfileChanged")
-	AutoSheathe.db.RegisterCallback(self, "OnProfileReset", "OnProfileChanged")
+    AutoSheathe.db.RegisterCallback(AutoSheathe, "OnProfileChanged", profileChanged)
+	AutoSheathe.db.RegisterCallback(self, "OnProfileReset", profileChanged)
 
     local aboutOptions = {
         name = "About",
@@ -61,7 +66,7 @@ function AutoSheathe:OnInitialize()
     config:RegisterOptionsTable("AutoSheathe-About", aboutOptions)
     dialog:AddToBlizOptions("AutoSheathe-About", "About", "AutoSheathe")
 
-    AutoSheathe:RegisterGameEvents()
+    registerGameEvents()
     registerSlashCommands()
 end
 
@@ -69,13 +74,7 @@ function AutoSheathe:OnEnable()
     startSheatheTimer()
 end
 
-function AutoSheathe:OnProfileChanged(event, database, newProfileKey)
-    local profileKey = "|cffffa500" .. newProfileKey .. "|r"
-    print("AutoSheathe profile changed:", profileKey)
-	handleWeaponSheathe()
-end
---FFA500
-function AutoSheathe:RegisterGameEvents()
+function registerGameEvents()
     eventFrame:UnregisterAllEvents();
 
     for i, event in ipairs(gameEvents) do
@@ -102,10 +101,10 @@ function AutoSheathe:GetOptions()
         type = "group",
         args = {
             enabled = {
-                name = "Enable",
-                desc = "Enable or disable AutoSheathe",
                 type = "toggle",
                 order = 0,
+                name = "Enable",
+                desc = "Enable or disable AutoSheathe",
                 set = function(info, val)
                     AutoSheathe.db.profile.enabled = val
                     if arg == "city_sheathe" then
@@ -115,9 +114,9 @@ function AutoSheathe:GetOptions()
                 get = function(info) return AutoSheathe.db.profile.enabled end
             },
             basic_options = {
-                name = "Basic",
                 type = "group",
                 order = 10,
+                name = "Basic",
                 inline = true,
                 get = get,
                 set = set,
@@ -129,10 +128,10 @@ function AutoSheathe:GetOptions()
                         name = "Basic options for AutoSheathe"
                     },
                     sheath_state = {
-                        name = "Keep weapon",
-                        desc = "Select sheath state",
                         type = "select",
                         order = 20,
+                        name = "Keep weapon",
+                        desc = "Select sheath state",
                         values = {
                             [1] = "Sheathed",
                             [2] = "Unsheathed"
@@ -151,18 +150,18 @@ function AutoSheathe:GetOptions()
                 disabled = function() return not AutoSheathe.db.profile.enabled end,
                 args = {
                     auto_draw = {
-                        name = "Auto draw weapon",
-                        desc = "Unsheathe weapon when attacked",
                         type = "toggle",
                         order = 1,
+                        name = "Auto draw weapon",
+                        desc = "Unsheathe weapon when attacked",
                         disabled = function() return getConfigSheathState() == 2 end,
                         arg = "auto_draw"
                     },
                     city_sheathe = {
-                        name = "Stay sheathed in cities",
-                        desc = "Keep weapon sheathed when in cities or near an innkeeper",
                         type = "toggle",
                         order = 2,
+                        name = "Stay sheathed in cities",
+                        desc = "Keep weapon sheathed when in cities or near an innkeeper",
                         disabled = function() return getConfigSheathState() == 1 end,
                         arg = "city_sheathe"
                     }
@@ -170,11 +169,10 @@ function AutoSheathe:GetOptions()
             },
             reset_profile = {
                 type = "execute",
+                order = -1,
                 name = "Defaults",
                 desc = "Resets profile to default values",
-                order = 30,
                 func = function() AutoSheathe.db:ResetProfile() end,
-                width = "half",
                 disabled = function() return not AutoSheathe.db.profile.enabled end,
             }
         }
@@ -287,53 +285,31 @@ function AutoSheathe:SheatheTimerFeedback()
 end
 
 function registerSlashCommands()
-    local console = LibStub("AceConsole-3.0")
+    --local console = LibStub("AceConsole-3.0")
+    AutoSheathe:RegisterChatCommand("autosheathe", "slashfunc")
+    AutoSheathe:RegisterChatCommand("as", "slashfunc")
+end
 
-    local function slashfunc(input)
-        if not AutoSheathe.db.profile.enabled then
-            return
-        end
-
-        input = string.lower(input)
-        command, arg = console:GetArgs(input, 2)
-
-        if command == "toggle" then
-            if arg == "autodraw" and getConfigSheathState() == 1 then
-                isAutoDrawEnabled = not AutoSheathe.db.profile.auto_draw
-                AutoSheathe.db.profile.auto_draw = isAutoDrawEnabled
-                print("Auto draw weapon:", booleanToText(AutoSheathe.db.profile.auto_draw))
-                return
-            end
-
-            if arg == "city" and getConfigSheathState() == 2 then
-                isCitySheatheEnabled = not AutoSheathe.db.profile.city_sheathe
-                AutoSheathe.db.profile.auto_draw = isCitySheatheEnabled
-                print("Keep weapon sheathed in cities:", booleanToText(AutoSheathe.db.profile.city_sheathe))
-                return
-            end
-
-            isAddonEnabled = not AutoSheathe.db.profile.enabled
-            AutoSheathe.db.profile.enabled = isAddonEnabled
-            print("AutoSheathe:", booleanToText(AutoSheathe.db.profile.enabled))
-            return
-        end
-
-        if Settings then
-            Settings.OpenToCategory("AutoSheathe")
-        elseif InterfaceOptionsFrame_OpenToCategory then
-            InterfaceOptionsFrame_OpenToCategory("AutoSheathe")
-        end
+function AutoSheathe:slashfunc(input)
+    if Settings then
+        Settings.OpenToCategory("AutoSheathe")
+    elseif InterfaceOptionsFrame_OpenToCategory then
+        InterfaceOptionsFrame_OpenToCategory("AutoSheathe")
     end
-
-    console:RegisterChatCommand("autosheathe",slashfunc)
-    console:RegisterChatCommand("as",slashfunc)
 end
 
 function getConfigSheathState() return AutoSheathe.db.profile.sheath_state end
 
 function booleanToText(val)
     if val then
-        return "|cff00ff00enabled|r"
+        return formatTextColor("enabled", "ff00ff00")
     end
-    return "|cffff0000disabled|r"
+    return formatTextColor("disabled", "ffff0000")
+end
+
+function formatTextColor(text, color)
+    if color ~= nil then
+        return "|c" .. color .. text .. "|r"
+    end
+    return text
 end
