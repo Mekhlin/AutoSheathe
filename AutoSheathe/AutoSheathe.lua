@@ -36,6 +36,7 @@ function AutoSheathe:OnInitialize()
     AutoSheathe.db = LibStub("AceDB-3.0"):New("AutoSheatheDB", defaults, true)
     AutoSheathe.db.RegisterCallback(AutoSheathe, "OnProfileChanged", "OnProfileChanged")
 	AutoSheathe.db.RegisterCallback(AutoSheathe, "OnProfileReset", "OnProfileChanged")
+    timer = nil
 
     createBlizzOptions()
     registerGameEvents()
@@ -44,10 +45,10 @@ function AutoSheathe:OnInitialize()
 end
 
 function AutoSheathe:OnEnable()
-    startSheatheTimer()
+    startTimer()
 end
 
-function createconfig()
+function createConfig()
     local function get(info)
         return AutoSheathe.db.profile[info.arg]
     end
@@ -61,9 +62,14 @@ function createconfig()
         name = "|cff9d875fAutoSheathe|r",
         type = "group",
         args = {
+            selected_profile = {
+                type = "description",
+                order = 5,
+                name = function() return "Selected profile: " .. "|cffffa500" .. AutoSheathe.db:GetCurrentProfile() .. "|r\n" end
+            },
             enabled = {
                 type = "toggle",
-                order = 0,
+                order = 10,
                 name = "Enable",
                 desc = "Enable or disable AutoSheathe",
                 set = function(info, val)
@@ -76,7 +82,7 @@ function createconfig()
             },
             basic_options = {
                 type = "group",
-                order = 10,
+                order = 20,
                 name = "Basic",
                 inline = true,
                 get = get,
@@ -104,7 +110,7 @@ function createconfig()
             conditions = {
                 name = "Conditions",
                 type = "group",
-                order = 20,
+                order = 30,
                 inline = true,
                 get = get,
                 set = set,
@@ -143,7 +149,7 @@ function createconfig()
 end
 
 function createBlizzOptions()
-    options = createconfig()
+    options = createConfig()
 
     local aboutOptions = {
         name = "About",
@@ -271,20 +277,20 @@ function canUnsheatheWeapon()
     return true
 end
 
-function startSheatheTimer()
-  destroyExistingSheatheTimer()
-  AutoSheathe.Timer = AutoSheathe:ScheduleRepeatingTimer("OnSheatheTimerFeedback", 2)
+function startTimer()
+  destroyExistingTimer()
+  AutoSheathe.Timer = AutoSheathe:ScheduleRepeatingTimer("TimerFeedback", 2)
 end
 
-function destroyExistingSheatheTimer()
+function destroyExistingTimer()
 	if (not (AutoSheathe.Timer == nil)) then
   	AutoSheathe:CancelTimer(AutoSheathe.Timer)
     AutoSheathe.Timer = nil
   end
 end
 
-function AutoSheathe:OnSheatheTimerFeedback()
-  handleWeaponSheathe()
+function AutoSheathe:TimerFeedback()
+    handleWeaponSheathe()
 end
 
 function AutoSheathe:slashfunc(input)
@@ -296,5 +302,6 @@ function AutoSheathe:slashfunc(input)
 end
 
 function AutoSheathe:OnProfileChanged(event, database, newProfileKey)
+    currentProfileName = newProfileKey
     handleWeaponSheathe()
 end
