@@ -33,60 +33,21 @@ function AutoSheathe:OnInitialize()
         }
     }
 
-    local function profileChanged(event, database, newProfileKey)
-        print("AutoSheathe profile changed:", formatTextColor(newProfileKey, "ffffa500"))
-        handleWeaponSheathe()
-    end
-
     AutoSheathe.db = LibStub("AceDB-3.0"):New("AutoSheatheDB", defaults, true)
-    AutoSheathe.db.RegisterCallback(AutoSheathe, "OnProfileChanged", profileChanged)
-	AutoSheathe.db.RegisterCallback(self, "OnProfileReset", profileChanged)
+    AutoSheathe.db.RegisterCallback(AutoSheathe, "OnProfileChanged", "OnProfileChanged")
+	AutoSheathe.db.RegisterCallback(AutoSheathe, "OnProfileReset", "OnProfileChanged")
 
-    local aboutOptions = {
-        name = "About",
-        type = "group",
-        args = {
-                version = {
-                    name = function(info) return "Version: " .. GetAddOnMetadata("AutoSheathe", "Version") end,
-                    type = "description"
-                }
-            }
-        }
-
-    local config = LibStub("AceConfig-3.0")
-    local dialog = LibStub("AceConfigDialog-3.0")
-
-    config:RegisterOptionsTable("AutoSheathe", AutoSheathe:GetOptions())
-    dialog:AddToBlizOptions("AutoSheathe", "AutoSheathe")
-
-    profileOptions = LibStub("AceDBOptions-3.0"):GetOptionsTable(AutoSheathe.db)
-    config:RegisterOptionsTable("AutoSheathe-Profiles", profileOptions)
-    dialog:AddToBlizOptions("AutoSheathe-Profiles", "Profiles", "AutoSheathe")
-
-    config:RegisterOptionsTable("AutoSheathe-About", aboutOptions)
-    dialog:AddToBlizOptions("AutoSheathe-About", "About", "AutoSheathe")
-
+    createBlizzOptions()
     registerGameEvents()
-    registerSlashCommands()
+
+    self:RegisterChatCommand("as", "slashfunc")
 end
 
 function AutoSheathe:OnEnable()
     startSheatheTimer()
 end
 
-function registerGameEvents()
-    eventFrame:UnregisterAllEvents();
-
-    for i, event in ipairs(gameEvents) do
-        eventFrame:RegisterEvent(event)
-    end
-
-    eventFrame:SetScript("OnEvent", function (frame, event, first, second)
-        handleWeaponSheathe()
-  	end)
-end
-
-function AutoSheathe:GetOptions()
+function createconfig()
     local function get(info)
         return AutoSheathe.db.profile[info.arg]
     end
@@ -96,7 +57,7 @@ function AutoSheathe:GetOptions()
         AutoSheathe.db.profile[arg] = val
     end
 
-    return {
+    local options = {
         name = "|cff9d875fAutoSheathe|r",
         type = "group",
         args = {
@@ -140,7 +101,7 @@ function AutoSheathe:GetOptions()
                     }
                 }
             },
-            sheathe_conditions = {
+            conditions = {
                 name = "Conditions",
                 type = "group",
                 order = 20,
@@ -154,7 +115,7 @@ function AutoSheathe:GetOptions()
                         order = 1,
                         name = "Auto draw weapon",
                         desc = "Unsheathe weapon when attacked",
-                        disabled = function() return getConfigSheathState() == 2 end,
+                        disabled = function() return AutoSheathe.db.profile.sheath_state == 2 end,
                         arg = "auto_draw"
                     },
                     city_sheathe = {
@@ -162,7 +123,7 @@ function AutoSheathe:GetOptions()
                         order = 2,
                         name = "Stay sheathed in cities",
                         desc = "Keep weapon sheathed when in cities or near an innkeeper",
-                        disabled = function() return getConfigSheathState() == 1 end,
+                        disabled = function() return AutoSheathe.db.profile.sheath_state == 1 end,
                         arg = "city_sheathe"
                     }
                 }
@@ -177,6 +138,48 @@ function AutoSheathe:GetOptions()
             }
         }
     }
+
+    return options
+end
+
+function createBlizzOptions()
+    options = createconfig()
+
+    local aboutOptions = {
+        name = "About",
+        type = "group",
+        args = {
+                version = {
+                    name = function(info) return "Version: " .. GetAddOnMetadata("AutoSheathe", "Version") end,
+                    type = "description"
+                }
+            }
+        }
+
+    local config = LibStub("AceConfig-3.0")
+    local dialog = LibStub("AceConfigDialog-3.0")
+
+    config:RegisterOptionsTable("AutoSheathe", options)
+    dialog:AddToBlizOptions("AutoSheathe", "AutoSheathe")
+
+    profileOptions = LibStub("AceDBOptions-3.0"):GetOptionsTable(AutoSheathe.db)
+    config:RegisterOptionsTable("AutoSheathe-Profiles", profileOptions)
+    dialog:AddToBlizOptions("AutoSheathe-Profiles", "Profiles", "AutoSheathe")
+
+    config:RegisterOptionsTable("AutoSheathe-About", aboutOptions)
+    dialog:AddToBlizOptions("AutoSheathe-About", "About", "AutoSheathe")
+end
+
+function registerGameEvents()
+    eventFrame:UnregisterAllEvents();
+
+    for i, event in ipairs(gameEvents) do
+        eventFrame:RegisterEvent(event)
+    end
+
+    eventFrame:SetScript("OnEvent", function (frame, event, first, second)
+        handleWeaponSheathe()
+  	end)
 end
 
 function handleWeaponSheathe()
@@ -203,10 +206,10 @@ function handleWeaponSheathe()
         end
     end
 
-    if getConfigSheathState() == 2 and canUnsheatheWeapon() then
+    if AutoSheathe.db.profile.sheath_state == 2 and canUnsheatheWeapon() then
         ToggleSheath()
         return
-    elseif getConfigSheathState() == 1 and canSheatheWeapon() then
+    elseif AutoSheathe.db.profile.sheath_state == 1 and canSheatheWeapon() then
         ToggleSheath()
         return
     end
@@ -270,7 +273,7 @@ end
 
 function startSheatheTimer()
   destroyExistingSheatheTimer()
-  AutoSheathe.Timer = AutoSheathe:ScheduleRepeatingTimer("SheatheTimerFeedback", 2)
+  AutoSheathe.Timer = AutoSheathe:ScheduleRepeatingTimer("OnSheatheTimerFeedback", 2)
 end
 
 function destroyExistingSheatheTimer()
@@ -280,14 +283,8 @@ function destroyExistingSheatheTimer()
   end
 end
 
-function AutoSheathe:SheatheTimerFeedback()
+function AutoSheathe:OnSheatheTimerFeedback()
   handleWeaponSheathe()
-end
-
-function registerSlashCommands()
-    --local console = LibStub("AceConsole-3.0")
-    AutoSheathe:RegisterChatCommand("autosheathe", "slashfunc")
-    AutoSheathe:RegisterChatCommand("as", "slashfunc")
 end
 
 function AutoSheathe:slashfunc(input)
@@ -298,18 +295,6 @@ function AutoSheathe:slashfunc(input)
     end
 end
 
-function getConfigSheathState() return AutoSheathe.db.profile.sheath_state end
-
-function booleanToText(val)
-    if val then
-        return formatTextColor("enabled", "ff00ff00")
-    end
-    return formatTextColor("disabled", "ffff0000")
-end
-
-function formatTextColor(text, color)
-    if color ~= nil then
-        return "|c" .. color .. text .. "|r"
-    end
-    return text
+function AutoSheathe:OnProfileChanged(event, database, newProfileKey)
+    handleWeaponSheathe()
 end
