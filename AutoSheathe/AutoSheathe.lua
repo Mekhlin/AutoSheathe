@@ -195,7 +195,7 @@ function handleWeaponSheathe()
 
     infight = UnitAffectingCombat("player")
     if infight then
-        if canUnsheatheWeapon() then
+        if canDrawWeapon() then
             ToggleSheath()
             return
         else
@@ -212,7 +212,7 @@ function handleWeaponSheathe()
         end
     end
 
-    if AutoSheathe.db.profile.sheath_state == 2 and canUnsheatheWeapon() then
+    if AutoSheathe.db.profile.sheath_state == 2 and canDrawWeapon() then
         ToggleSheath()
         return
     elseif AutoSheathe.db.profile.sheath_state == 1 and canSheatheWeapon() then
@@ -255,13 +255,17 @@ function canSheatheWeapon()
     return true
 end
 
-function canUnsheatheWeapon()
+function canDrawWeapon()
     if GetSheathState() == 2 then
         return false
     end
 
     if UnitAffectingCombat("player") and AutoSheathe.db.profile.auto_draw then
         return true
+    end
+    
+    if IsSwimming() then
+        return false
     end
 
     -- If player is mounted or affexted by "vehicle buff".
