@@ -12,8 +12,6 @@ local gameEvents = {
     "MERCHANT_CLOSED"
 }
 
-local db
-
 local buffVehicles = {
     ["Rocfeather Skyhorn Kite"] = true,
     ["Goblin Glider"]           = true,
@@ -35,21 +33,20 @@ function AutoSheathe:OnInitialize()
         }
     }
 
-    self.db = LibStub("AceDB-3.0"):New("AutoSheatheDB", defaults)
-	self.db.RegisterCallback(self, "OnProfileChanged", "OnProfileChanged")
-	self.db.RegisterCallback(self, "OnProfileCopied", "OnProfileChanged")
-	self.db.RegisterCallback(self, "OnProfileReset", "OnProfileChanged")
-	db = self.db.profile
+    AutoSheathe.db = LibStub("AceDB-3.0"):New("AutoSheatheDB", defaults)
+	AutoSheathe.db.RegisterCallback(AutoSheathe, "OnProfileChanged", "OnProfileChanged")
+	AutoSheathe.db.RegisterCallback(AutoSheathe, "OnProfileCopied", "OnProfileChanged")
+	AutoSheathe.db.RegisterCallback(AutoSheathe, "OnProfileReset", "OnProfileChanged")
     timer = nil
 
-    createBlizzOptions(self.db)
+    createBlizzOptions()
     registerGameEvents()
 
     self:RegisterChatCommand("as", "slashfunc")
 end
 
 function AutoSheathe:OnEnable()
-    if not db.enabled then
+    if not AutoSheathe.db.profile.enabled then
         return
     end
 
@@ -57,21 +54,21 @@ function AutoSheathe:OnEnable()
 end
 
 function AutoSheathe:OnDisable()
-    if db.enabled then
+    if AutoSheathe.db.profile.enabled then
         return
     end
 
     destroyExistingTimer();
 end
 
-function createConfig(database)
+function createConfig()
     local function get(info)
-        return db[info.arg]
+        return AutoSheathe.db.profile[info.arg]
     end
 
     local function set(info, val)
         local arg = info.arg
-        db[arg] = val
+        AutoSheathe.db.profile[arg] = val
         if arg == "city_sheathe" then
             handleWeapon()
         end
@@ -84,7 +81,7 @@ function createConfig(database)
             selected_profile = {
                 type = "description",
                 order = 5,
-                name = function() return "Current profile: " .. "|cffffa500" .. database:GetCurrentProfile() .. "|r\n" end
+                name = function() return "Current profile: " .. "|cffffa500" .. AutoSheathe.db:GetCurrentProfile() .. "|r\n" end
             },
             enabled = {
                 type = "toggle",
@@ -92,14 +89,14 @@ function createConfig(database)
                 name = "Enable",
                 desc = "Enable or disable AutoSheathe",
                 set = function(info, val)
-                    db.enabled = val
+                    AutoSheathe.db.profile.enabled = val
                     if val then
                         AutoSheathe:Enable()
                     else
                         AutoSheathe:Disable()
                     end
                 end,
-                get = function(info) return db.enabled end
+                get = function(info) return AutoSheathe.db.profile.enabled end
             },
             basic_options = {
                 type = "group",
@@ -108,7 +105,7 @@ function createConfig(database)
                 inline = true,
                 get = get,
                 set = set,
-                disabled = function() return not db.enabled end,
+                disabled = function() return not AutoSheathe.db.profile.enabled end,
                 args = {
                     sheath_state = {
                         type = "select",
@@ -130,14 +127,14 @@ function createConfig(database)
                 inline = true,
                 get = get,
                 set = set,
-                disabled = function() return not db.enabled end,
+                disabled = function() return not AutoSheathe.db.profile.enabled end,
                 args = {
                     auto_draw = {
                         type = "toggle",
                         order = 1,
                         name = "Auto draw weapon",
                         desc = "Draw weapon when attacked",
-                        disabled = function() return not db.enabled or db.sheath_state == 2 end,
+                        disabled = function() return not AutoSheathe.db.profile.enabled or AutoSheathe.db.profile.sheath_state == 2 end,
                         arg = "auto_draw"
                     },
                     city_sheathe = {
@@ -145,7 +142,7 @@ function createConfig(database)
                         order = 2,
                         name = "Sheathe weapon in cities",
                         desc = "Keep weapon sheathed when in cities or near an innkeeper",
-                        disabled = function() return not db.enabled or db.sheath_state == 1 end,
+                        disabled = function() return not AutoSheathe.db.profile.enabled or AutoSheathe.db.profile.sheath_state == 1 end,
                         arg = "city_sheathe"
                     }
                 }
@@ -155,8 +152,8 @@ function createConfig(database)
                 order = -1,
                 name = "Defaults",
                 desc = "Resets profile to default values",
-                func = function() self.db:ResetProfile() end,
-                disabled = function() return not db.enabled end,
+                func = function() AutoSheathe.db:ResetProfile() end,
+                disabled = function() return not AutoSheathe.db.profile.enabled end,
             }
         }
     }
@@ -185,7 +182,7 @@ function createBlizzOptions(database)
     config:RegisterOptionsTable("AutoSheathe", options)
     dialog:AddToBlizOptions("AutoSheathe", "AutoSheathe")
 
-    profileOptions = LibStub("AceDBOptions-3.0"):GetOptionsTable(database)
+    profileOptions = LibStub("AceDBOptions-3.0"):GetOptionsTable(AutoSheathe.db)
     config:RegisterOptionsTable("AutoSheathe-Profiles", profileOptions)
     dialog:AddToBlizOptions("AutoSheathe-Profiles", "Profiles", "AutoSheathe")
 
@@ -206,7 +203,7 @@ function registerGameEvents()
 end
 
 function handleWeapon()
-    if not db.enabled then
+    if not AutoSheathe.db.profile.enabled then
         return
     end
 
@@ -222,17 +219,17 @@ function handleWeapon()
 
     sheathState = GetSheathState()
 
-    if db.city_sheathe then
+    if AutoSheathe.db.profile.city_sheathe then
         if IsResting() and sheathState == 2 then
             ToggleSheath()
             return
         end
     end
 
-    if db.sheath_state == 2 and canDrawWeapon() then
+    if AutoSheathe.db.profile.sheath_state == 2 and canDrawWeapon() then
         ToggleSheath()
         return
-    elseif db.sheath_state == 1 and canSheatheWeapon() then
+    elseif AutoSheathe.db.profile.sheath_state == 1 and canSheatheWeapon() then
         ToggleSheath()
         return
     end
@@ -257,7 +254,7 @@ function canSheatheWeapon()
         return false
     end
 
-    if IsResting() and db.city_sheathe then
+    if IsResting() and AutoSheathe.db.profile.city_sheathe then
         return true
     end
 
@@ -277,7 +274,7 @@ function canDrawWeapon()
         return false
     end
 
-    if UnitAffectingCombat("player") and db.auto_draw then
+    if UnitAffectingCombat("player") and AutoSheathe.db.profile.auto_draw then
         return true
     end
 
@@ -291,7 +288,7 @@ function canDrawWeapon()
     end
 
     -- Player is in a city or near an innkeeper.
-    if IsResting() and db.city_sheathe then
+    if IsResting() and AutoSheathe.db.profile.city_sheathe then
         return false
     end
 
@@ -323,6 +320,5 @@ function AutoSheathe:slashfunc(input)
 end
 
 function AutoSheathe:OnProfileChanged(event, database, newProfileKey)
-    db = database.profile
     handleWeapon()
 end 
