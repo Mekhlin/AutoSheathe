@@ -16,7 +16,7 @@ local buffVehicles = {
     ["Rocfeather Skyhorn Kite"] = true,
     ["Goblin Glider"]           = true,
     ["Zen Flight"]              = true,
-    ["Bronze Racer's Pennant"]  = true
+    ["Tiki Army"]               = true
 }
 
 -- Create and initialize addon
@@ -42,7 +42,7 @@ function AutoSheathe:OnInitialize()
     createBlizzOptions()
     registerGameEvents()
 
-    self:RegisterChatCommand("as", "slashfunc")
+    registerChatCommands()
 end
 
 function AutoSheathe:OnEnable()
@@ -151,6 +151,7 @@ function createConfig()
                 type = "execute",
                 order = -1,
                 name = "Defaults",
+                width = "half",
                 desc = "Resets profile to default values",
                 func = function() AutoSheathe.db:ResetProfile() end,
                 disabled = function() return not AutoSheathe.db.profile.enabled end,
@@ -161,17 +162,27 @@ function createConfig()
     return options
 end
 
-function createBlizzOptions(database)
-    options = createConfig(database)
+function createBlizzOptions()
+    options = createConfig()
 
     local aboutOptions = {
         name = "About",
         type = "group",
         args = {
-                version = {
+                addon_version = {
                     type = "description",
                     order = 1,
-                    name = function(info) return "Version: " .. GetAddOnMetadata("AutoSheathe", "Version") end
+                    name = function(info) return "AutoSheathe v" .. GetAddOnMetadata("AutoSheathe", "Version") end
+                },
+                toc_version = {
+                    type = "description",
+                    order = 1,
+                    name = function(info) return "WoW: " .. GetAddOnMetadata("AutoSheathe", "X-Interface") end
+                },
+                github = {
+                    type = "description",
+                    order = 2,
+                    name = function(info) return "https://github.com/Mekhlin/AutoSheathe" end
                 }
             }
         }
@@ -200,6 +211,12 @@ function registerGameEvents()
     eventFrame:SetScript("OnEvent", function (frame, event, first, second)
         handleWeapon()
   	end)
+end
+
+function registerChatCommands()
+    AutoSheathe:RegisterChatCommand("as", "slashfunc")
+    AutoSheathe:RegisterChatCommand("asc", function() LibStub("AceConfigDialog-3.0"):Open("AutoSheathe") end)
+
 end
 
 function handleWeapon()
@@ -282,7 +299,6 @@ function canDrawWeapon()
         return false
     end
 
-    -- If player is mounted or affexted by "vehicle buff".
     if IsMounted() or inVehicle() then
         return false
     end
@@ -321,4 +337,4 @@ end
 
 function AutoSheathe:OnProfileChanged(event, database, newProfileKey)
     handleWeapon()
-end 
+end
