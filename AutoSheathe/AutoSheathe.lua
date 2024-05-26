@@ -2,14 +2,12 @@ local gameEvents = {
     "ADDON_LOADED",
     "PLAYER_LOGIN",
     "PLAYER_REGEN_ENABLED",
+    "PLAYER_REGEN_DISABLED",
+    "LOOT_OPENED",
     "LOOT_CLOSED",
-    "AUCTION_HOUSE_CLOSED",
     "UNIT_EXITED_VEHICLE",
-    "BARBER_SHOP_CLOSE",
     "PLAYER_ENTERING_WORLD",
-    "QUEST_ACCEPTED",
-    "QUEST_FINISHED",
-    "MERCHANT_CLOSED"
+    "PLAYER_FLAGS_CHANGED"
 }
 
 local buffVehicles = {
@@ -20,7 +18,7 @@ local buffVehicles = {
 }
 
 -- Create and initialize addon
-AutoSheathe = LibStub("AceAddon-3.0"):NewAddon("AutoSheathe", "AceTimer-3.0", "AceConsole-3.0")
+AutoSheathe = LibStub("AceAddon-3.0"):NewAddon("AutoSheathe", "AceTimer-3.0")
 eventFrame = CreateFrame("FRAME", "AutoSheatheEventFrame")
 
 function AutoSheathe:OnInitialize()
@@ -29,7 +27,8 @@ function AutoSheathe:OnInitialize()
             enabled = true,
             sheath_state = 1,
             auto_draw = true,
-            city_sheathe = false
+            city_sheathe = false,
+            afk_sheathe = false
         }
     }
 
@@ -41,8 +40,6 @@ function AutoSheathe:OnInitialize()
 
     createBlizzOptions()
     registerGameEvents()
-
-    registerChatCommands()
 end
 
 function AutoSheathe:OnEnable()
@@ -144,6 +141,14 @@ function createConfig()
                         desc = "Keep weapon sheathed when in cities or near an innkeeper",
                         disabled = function() return not AutoSheathe.db.profile.enabled or AutoSheathe.db.profile.sheath_state == 1 end,
                         arg = "city_sheathe"
+                    },
+                    afk_sheathe = {
+                        type = "toggle",
+                        order = 3,
+                        name = "Sheathe weapon on AFK",
+                        desc = "Keep weapon sheathed when player is AFK",
+                        disabled = function() return not AutoSheathe.db.profile.enabled or AutoSheathe.db.profile.sheath_state == 1 end,
+                        arg = "afk_sheathe"
                     }
                 }
             },
@@ -213,12 +218,7 @@ function registerGameEvents()
   	end)
 end
 
-function registerChatCommands()
-    AutoSheathe:RegisterChatCommand("as", "slashfunc")
-    AutoSheathe:RegisterChatCommand("asc", function() LibStub("AceConfigDialog-3.0"):Open("AutoSheathe") end)
-
-end
-
+-- This is where the magic happens!
 function handleWeapon()
     if not AutoSheathe.db.profile.enabled then
         return
@@ -238,6 +238,13 @@ function handleWeapon()
 
     if AutoSheathe.db.profile.city_sheathe then
         if IsResting() and sheathState == 2 then
+            ToggleSheath()
+            return
+        end
+    end
+
+    if AutoSheathe.db.profile.afk_sheathe then
+        if UnitIsAFK("player") and sheathState == 2 then
             ToggleSheath()
             return
         end
@@ -274,6 +281,10 @@ function canSheatheWeapon()
     if IsResting() and AutoSheathe.db.profile.city_sheathe then
         return true
     end
+    
+    if UnitIsAFK("player") and AutoSheathe.db.profile.afk_sheathe then
+        return true
+    end
 
     if UnitAffectingCombat("player") then
         return false
@@ -307,6 +318,11 @@ function canDrawWeapon()
     if IsResting() and AutoSheathe.db.profile.city_sheathe then
         return false
     end
+    
+    -- Player is AFK.
+    if UnitIsAFK("player") and AutoSheathe.db.profile.afk_sheathe then
+        return false
+    end
 
     return true
 end
@@ -325,14 +341,6 @@ end
 
 function AutoSheathe:TimerFeedback()
     handleWeapon()
-end
-
-function AutoSheathe:slashfunc(input)
-    if Settings then
-        Settings.OpenToCategory("AutoSheathe")
-    elseif InterfaceOptionsFrame_OpenToCategory then
-        InterfaceOptionsFrame_OpenToCategory("AutoSheathe")
-    end
 end
 
 function AutoSheathe:OnProfileChanged(event, database, newProfileKey)
