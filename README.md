@@ -15,8 +15,9 @@ World of Warcraft\_retail_\Interface\AddOns\
 
 ```
 AutoSheathe
-├─ AutoSheathe.lua
 ├─ AutoSheathe.toc
+├─ AutoSheathe_Core.lua
+├─ AutoSheathe_Options.lua
 ├─ embeds.xml
 └─ libs
    ├─ AceAddon-3.0
