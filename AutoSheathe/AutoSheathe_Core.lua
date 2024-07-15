@@ -22,7 +22,7 @@ AutoSheathe = LibStub("AceAddon-3.0"):NewAddon("AutoSheathe", "AceTimer-3.0")
 eventFrame = CreateFrame("FRAME", "AutoSheatheEventFrame")
 
 function AutoSheathe:OnInitialize()
-    
+
     defaultOptions = AutoSheathe:GetDefaultOptions()
     self.db = LibStub("AceDB-3.0"):New("AutoSheatheDB", defaultOptions)
 
@@ -57,11 +57,6 @@ function AutoSheathe:LoadOptions()
                     type = "description",
                     order = 1,
                     name = function(info) return "AutoSheathe v" .. GetAddOnMetadata("AutoSheathe", "Version") end
-                },
-                github = {
-                    type = "description",
-                    order = 2,
-                    name = function(info) return "https://github.com/Mekhlin/AutoSheathe" end
                 }
             }
         }
@@ -88,12 +83,12 @@ function AutoSheathe:RegisterGameEvents()
     end
 
     eventFrame:SetScript("OnEvent", function (frame, event, first, second)
-        handleWeapon()
+        self:HandleWeapon()
   	end)
 end
 
 -- This is where the magic happens!
-function handleWeapon()
+function AutoSheathe:HandleWeapon()
     if not AutoSheathe.db.profile.enabled then
         return
     end
@@ -152,16 +147,16 @@ function canSheatheWeapon()
         return false
     end
 
+    if UnitAffectingCombat("player") then
+        return false
+    end
+
     if IsResting() and AutoSheathe.db.profile.city_sheathe then
         return true
     end
-    
+
     if UnitIsAFK("player") and AutoSheathe.db.profile.afk_sheathe then
         return true
-    end
-
-    if UnitAffectingCombat("player") then
-        return false
     end
 
     if inVehicle() then
@@ -188,12 +183,10 @@ function canDrawWeapon()
         return false
     end
 
-    -- Player is in a city or near an innkeeper.
     if IsResting() and AutoSheathe.db.profile.city_sheathe then
         return false
     end
-    
-    -- Player is AFK.
+
     if UnitIsAFK("player") and AutoSheathe.db.profile.afk_sheathe then
         return false
     end
@@ -214,5 +207,5 @@ function destroyExistingTimer()
 end
 
 function AutoSheathe:TimerFeedback()
-    handleWeapon()
+    self:HandleWeapon()
 end

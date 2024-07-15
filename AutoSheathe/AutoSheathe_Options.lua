@@ -19,7 +19,7 @@ function AutoSheathe:GetOptions()
         local arg = info.arg
         AutoSheathe.db.profile[arg] = val
         if arg == "city_sheathe" then
-            handleWeapon()
+            AutoSheathe:HandleWeapon()
         end
     end
 
@@ -58,7 +58,7 @@ function AutoSheathe:GetOptions()
                 args = {
                     sheath_state = {
                         type = "select",
-                        order = 20,
+                        order = 1,
                         name = "Keep weapon",
                         desc = "Select sheath state",
                         values = {
