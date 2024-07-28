@@ -35,7 +35,7 @@ function AutoSheathe:OnEnable()
         return
     end
 
-    startTimer()
+    self:StartTimer()
 end
 
 function AutoSheathe:OnDisable()
@@ -43,23 +43,12 @@ function AutoSheathe:OnDisable()
         return
     end
 
-    destroyExistingTimer();
+    self:DestroyExistingTimer();
 end
 
 function AutoSheathe:LoadOptions()
     options = AutoSheathe:GetOptions()
-
-    local aboutOptions = {
-        name = "About",
-        type = "group",
-        args = {
-                addon_version = {
-                    type = "description",
-                    order = 1,
-                    name = function(info) return "AutoSheathe v" .. GetAddOnMetadata("AutoSheathe", "Version") end
-                }
-            }
-        }
+    aboutOptions = AutoSheathe:GetAbout()    
 
     local config = LibStub("AceConfig-3.0")
     local dialog = LibStub("AceConfigDialog-3.0")
@@ -76,7 +65,7 @@ function AutoSheathe:LoadOptions()
 end
 
 function AutoSheathe:RegisterGameEvents()
-    eventFrame:UnregisterAllEvents();
+    eventFrame:UnregisterAllEvents()
 
     for i, event in ipairs(gameEvents) do
         eventFrame:RegisterEvent(event)
@@ -194,12 +183,12 @@ function canDrawWeapon()
     return true
 end
 
-function startTimer()
-  destroyExistingTimer()
+function AutoSheathe:StartTimer()
+  self:DestroyExistingTimer()
   AutoSheathe.Timer = AutoSheathe:ScheduleRepeatingTimer("TimerFeedback", 2)
 end
 
-function destroyExistingTimer()
+function AutoSheathe:DestroyExistingTimer()
 	if (not (AutoSheathe.Timer == nil)) then
   	AutoSheathe:CancelTimer(AutoSheathe.Timer)
     AutoSheathe.Timer = nil

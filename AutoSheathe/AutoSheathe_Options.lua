@@ -82,7 +82,7 @@ function AutoSheathe:GetOptions()
                         type = "toggle",
                         order = 1,
                         name = "Auto draw weapon",
-                        desc = "Draw weapon when attacked",
+                        desc = "Draw weapon when attacked/targeted",
                         disabled = function() return not AutoSheathe.db.profile.enabled or AutoSheathe.db.profile.sheath_state == 2 end,
                         arg = "auto_draw"
                     },
@@ -117,4 +117,21 @@ function AutoSheathe:GetOptions()
     }
 
     return options
+end
+
+function AutoSheathe:GetAbout()
+    local aboutOptions = {
+        name = "About",
+        type = "group",
+        inline = true,
+        args = {
+            addon_version = {
+                type = "description",
+                order = 1,
+                name = function(info) return "AutoSheathe v" .. GetAddOnMetadata("AutoSheathe", "Version") end
+            }
+        }
+    }
+
+    return aboutOptions
 end
