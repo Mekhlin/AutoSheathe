@@ -123,9 +123,11 @@ function inVehicle()
     end
 
     for i = 1, 40 do
-        local name, _, _, _, _, _ = UnitBuff("player",i)
-        if name and buffVehicles[name] then
-            return true
+        local auraData = C_UnitAuras.GetBuffDataByIndex("player", i)
+        if auraData and auraData.name then        
+            if name and buffVehicles[auraData.name] then
+                return true
+            end
         end
     end
     return false
