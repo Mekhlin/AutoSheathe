@@ -11,11 +11,12 @@ local gameEvents = {
 }
 
 local buffVehicles = {
-    ["Rocfeather Skyhorn Kite"] = true,
-    ["Goblin Glider"]           = true,
-    ["Zen Flight"]              = true,
-    ["Tiki Army"]               = true
+    [196768] = true, -- Rocfeather Skyhorn Kite
+    [292427] = true, -- Goblin Glider
+    [195197] = true, -- Zen Flight
+    [287346] = true  -- Tiki Army
 }
+
 
 -- Create and initialize addon
 AutoSheathe = LibStub("AceAddon-3.0"):NewAddon("AutoSheathe", "AceTimer-3.0")
@@ -48,7 +49,7 @@ end
 
 function AutoSheathe:LoadOptions()
     options = AutoSheathe:GetOptions()
-    aboutOptions = AutoSheathe:GetAbout()    
+    aboutOptions = AutoSheathe:GetAbout()
 
     local config = LibStub("AceConfig-3.0")
     local dialog = LibStub("AceConfigDialog-3.0")
@@ -124,8 +125,8 @@ function inVehicle()
 
     for i = 1, 40 do
         local auraData = C_UnitAuras.GetBuffDataByIndex("player", i)
-        if auraData and auraData.name then        
-            if name and buffVehicles[auraData.name] then
+        if auraData and auraData.spellId then
+            if buffVehicles[auraData.spellId] then
                 return true
             end
         end
